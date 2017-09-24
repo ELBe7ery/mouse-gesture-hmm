@@ -1,18 +1,19 @@
 import math
 
 
-def coordinates_to_angles(l):
+def coordinates_to_angles(l, debug=False):
     a = []
     for i in range(1, len(l)):
         r = math.atan2(l[i][1] - l[i-1][1], l[i][0] - l[i-1][0])
         d = math.degrees(r)
+        if(debug):d = round(d, 3)
         a.append(d)
 
-    print(a)
+    if(debug):print(a)
     return a
 
 
-def quantize(l, n):
+def quantize(l, n, debug=False):
     """
     quantizes list elements using n levels => 0->n-1
     :param l:
@@ -20,10 +21,10 @@ def quantize(l, n):
     :return:
     """
     noise = 360/n
-    l=coordinates_to_angles(l)
+    #l=coordinates_to_angles(l, True)
 
     qd = list(map(lambda x: round(x/noise) , l))
-    print(qd)
+    if(debug):print(qd)
     return qd
 
 

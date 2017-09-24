@@ -1,7 +1,9 @@
-from tkinter import *
 from tkinter.colorchooser import askcolor
+from tkinter import *
 import save_load
 import os
+import quantize
+import math
 
 
 class SaveDialog:
@@ -40,7 +42,7 @@ class LoadDialog:
 #  http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/index.html
 #  http://zetcode.com/gui/tkinter/drawing/
 class Application(Frame):
-    def __init__(self, master):
+    def __init__(self, master, num_samples=1):
         super().__init__(master)
         self.toolsThickness = 10
         self.rgb = "#%02x%02x%02x" % (255, 0, 0)
@@ -52,6 +54,12 @@ class Application(Frame):
 
         master.bind('+', self.thicknessPlus)
         master.bind('-', self.thicknessMinus)
+        
+        # noise attributes
+        self.num_samples = num_samples  #how much should we sample
+        self.angles = []                #angles stored here
+        self.sample_counter = 1         #current sample t
+        self.vector_history = [0, 0]    
 
     def createWidgets(self):
         tk_rgb = "#%02x%02x%02x" % (128, 192, 200)
@@ -132,10 +140,15 @@ class Application(Frame):
         print(self.myScale.get())
         self.toolsThickness = self.myScale.get()
 
-    def setPreviousXY(self, event):
-        print("now")
+    def setPreviousXY(self, event, debug=False):
+        if(debug):print("now")
         self.previousX = event.x
         self.previousY = event.y
+        if(self.angles == []):self.setInitialVector()
+
+    def setInitialVector(self, debug=False):
+        self.vector_history=[self.previousX, self.previousY]
+        print("clear")
 
     def draw(self, event):
         self.myCanvas.create_line(self.previousX, self.previousY,
@@ -145,6 +158,16 @@ class Application(Frame):
         self.previousX = event.x
         self.previousY = event.y
         self.coordinates.append([self.previousX, self.previousY])
+
+        self.sample_counter += 1
+        if(self.sample_counter == self.num_samples):
+            self.sample_counter=1
+            slopex, slopey = event.x-self.vector_history[0], event.y-self.vector_history[1]
+            deg = math.degrees(math.atan2(slopey, slopex))
+            deg = round(deg, 3)
+            self.angles += [deg]
+            self.vector_history=[event.x, event.y]
+
 
     def SClick(self):
         sDialog = SaveDialog(root)
@@ -207,16 +230,21 @@ class Application(Frame):
     def buttonReleased(self,event):
         #popup window (submit? , gesture_class?)
         #if submit==yes :
-        print(self.coordinates)
+        #print(self.coordinates)
+        #quantize.quantize(self.coordinates, 8, False)
         #self.coordinates.append(gesture_class) #ie:we can index it with self.coordinates[-1]
         self.collected_data.append(self.coordinates)
         self.coordinates=[]
-        self.delteAll()
-        print("Now you have : ",len(self.collected_data),"training examples")
+        #self.delteAll()
+        self.sample_counter=1
+        #print("Now you have : ",len(self.collected_data),"training examples")
         self.n.set(self.n.get()+1)
-
+        print (self.angles, "ANGLES")
+        quantize.quantize(self.angles, 8, True)
+        self.angles=[]
+        
 
 root = Tk()
 root.title("Collect training examples")
-app = Application(root)
+app = Application(root, 7)
 root.mainloop()
